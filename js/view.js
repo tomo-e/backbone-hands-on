@@ -177,3 +177,12 @@ App.CalendarControlView = Backbone.View.extend({
     App.mediator.trigger('calendar:today');
   }
 });
+
+App.CalendarItemDateView = Backbone.View.extend({
+  events: {
+    'click td': 'onClick',
+  },
+  onClick: function() {
+    App.mediator.trigger('dialog:open');
+  }
+});
