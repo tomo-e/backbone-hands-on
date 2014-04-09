@@ -123,7 +123,7 @@ App.FormDialogView = Backbone.View.extend({
       this.$('.dialog-removeBtn').show();
     } else {
       this.$('input[name="title"]').val('');
-      this.$('input[name="datetime"]').val('');
+      this.$('input[name="datetime"]').val('2014-04-10');
       this.$('.dialog-removeBtn').hide();
     }
 
@@ -178,11 +178,19 @@ App.CalendarControlView = Backbone.View.extend({
   }
 });
 
+
 App.CalendarItemDateView = Backbone.View.extend({
+  tagname: 'td',
+
   events: {
-    'click td': 'onClick',
+    'click': 'onClick',
   },
-  onClick: function() {
-    App.mediator.trigger('dialog:open');
+  onClick: function(e) {
+    var target = e.target;
+
+    if (target.tagName === 'TD') {
+      App.mediator.trigger('dialog:open');
+      return false;
+    }
   }
 });
