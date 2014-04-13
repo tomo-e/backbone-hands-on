@@ -1,6 +1,6 @@
 App.CalendarView = Backbone.View.extend({
   initialize: function() {
-    this.listenTo(this.collection, 'add change', this.render);
+    this.listenTo(this.collection, 'add change remove', this.render);
     this.listenTo(App.mediator, 'calendar:prev', this.toPrev);
     this.listenTo(App.mediator, 'calendar:next', this.toNext);
     this.listenTo(App.mediator, 'calendar:today', this.toToday);
@@ -59,6 +59,10 @@ App.CalendarCellView = Backbone.View.extend({
   template: 
     '<div class="calendar-date"><%= date.format("MM/DD") %></div>' + '<ul class="calendar-list"></ul>',
 
+  events: {
+    'click': 'onClick'
+  },
+
   initialize: function(options) {
     this.date = options.date;
     this.render();
@@ -75,6 +79,11 @@ App.CalendarCellView = Backbone.View.extend({
       var item = new App.CalendarItemView({ model: model });
       $list.append(item.el);
     }, this);
+  },
+
+  onClick: function() {
+    var model =  new App.Schedule( { datetime: moment(this.date) });
+    App.mediator.trigger('dialog:open', model);
   }
 });
 
@@ -100,7 +109,9 @@ App.CalendarItemView = Backbone.View.extend({
     this.$el.html(html);
   },
 
-  onClick: function() {
+  onClick: function(e) {
+    e.stopPropagation();
+
     App.mediator.trigger('dialog:open', this.model);
   }
 });
@@ -108,29 +119,29 @@ App.CalendarItemView = Backbone.View.extend({
 App.FormDialogView = Backbone.View.extend({
   events: {
     'submit form': 'onSubmit',
-    'click .dialog-close': 'close'
+    'click .dialog-close': 'close',
+    'click .dialog-removeBtn' : 'onRemove'
   },
 
   initialize: function() {
-    this.listenTo(this.collection, 'add change', this.close);
+    this.listenTo(this.collection, 'add change remove', this.close);
     this.listenTo(this.collection, 'invalid', this.onError);
     this.listenTo(App.mediator, 'dialog:open', this.open);
   },
   render: function() {
-    if (this.model) {
-      this.$('input[name="title"]').val(this.model.get('title'));
-      this.$('input[name="datetime"]').val(this.model.dateFormat('YYYY-MM-DDTHH:mm'));
-      this.$('.dialog-removeBtn').show();
-    } else {
-      this.$('input[name="title"]').val('');
-      this.$('input[name="datetime"]').val('2014-04-10');
+    this.$('input[name="title"]').val(this.model.get('title') || '');
+    this.$('input[name="datetime"]').val(this.model.has('datetime') ? this.model.dateFormat('YYYY-MM-DDTHH:mm') :  '');
+
+    if (this.model.isNew()) {
       this.$('.dialog-removeBtn').hide();
+    } else {
+      this.$('.dialog-removeBtn').show();
     }
 
     this.$el.show();
   },
   open: function(model) {
-    this.model = model;
+    this.model = model || new this.collection.model();
     this.render();
   },
   close: function() {
@@ -146,11 +157,16 @@ App.FormDialogView = Backbone.View.extend({
       datetime: moment(datetime)
     };
 
-    if (this.model) {
-      this.model.save(params, { validate: true });
+    if (this.model.isNew()) {
+      this.collection.create(params, { validate: true });
     } else {
-      this.collection.create(params, { validate: true })
+      this.model.save(params, { validate: true });    
     }
+  },
+  onRemove: function(e) {
+    e.preventDefault();
+
+    this.model.destroy();
   },
   onError: function(model, message) {
     alert(message);
@@ -175,22 +191,5 @@ App.CalendarControlView = Backbone.View.extend({
   },
   onClickToday: function() {
     App.mediator.trigger('calendar:today');
-  }
-});
-
-
-App.CalendarItemDateView = Backbone.View.extend({
-  tagname: 'td',
-
-  events: {
-    'click': 'onClick',
-  },
-  onClick: function(e) {
-    var target = e.target;
-
-    if (target.tagName === 'TD') {
-      App.mediator.trigger('dialog:open');
-      return false;
-    }
   }
 });

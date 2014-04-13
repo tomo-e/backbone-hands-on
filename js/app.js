@@ -26,10 +26,6 @@ $(function() {
         el: '.calendar-control'
       });
 
-      this.calendarItemDateView = new App.CalendarItemDateView ({
-         el: '.calendar'
-      });
-
       this.listenTo(App.mediator, 'route:change', this.changeRoute);
     },
     changeRoute: function(route) {
